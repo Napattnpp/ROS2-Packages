@@ -12,7 +12,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument('input_topic', default_value='/sensors/core.state.speed'),
-        DeclareLaunchArgument('output_topic', default_value='/vesc_to_odom'),
+        DeclareLaunchArgument('output_topic', default_value='/vesc_avg'),
         DeclareLaunchArgument('window_size', default_value='10'),
         DeclareLaunchArgument('publish_rate_hz', default_value='50.0'),
         Node(
