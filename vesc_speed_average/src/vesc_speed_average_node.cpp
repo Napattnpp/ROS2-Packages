@@ -16,7 +16,7 @@ public:
   : Node("vesc_speed_average_node"), sum_(0.0), latest_average_(0.0), has_data_(false)
   {
     input_topic_ = this->declare_parameter<std::string>("input_topic", "/sensors/core.state.speed");
-    output_topic_ = this->declare_parameter<std::string>("output_topic", "/vesc_to_odom");
+    output_topic_ = this->declare_parameter<std::string>("output_topic", "/vesc_average");
     // window = the last N samples used to compute average (here N=10)
     window_size_ = this->declare_parameter<int>("window_size", 10);
     publish_rate_hz_ = this->declare_parameter<double>("publish_rate_hz", 50.0);
