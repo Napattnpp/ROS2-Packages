@@ -1,0 +1,7 @@
+vesc_speed_average_node:
+  ros__parameters:
+    input_topic: /sensors/core.state.speed
+    output_topic: /vesc_to_odom
+    window_size: 10
+    publish_rate_hz: 50.0
+    qos_depth: 50
