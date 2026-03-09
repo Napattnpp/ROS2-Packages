@@ -1,23 +1,24 @@
 #include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/float64.hpp>
+#include <vesc_msgs/msg/vesc_state_stamped.hpp>
 
-#include <algorithm>
 #include <chrono>
 #include <deque>
 #include <string>
 
 using std::placeholders::_1;
-using namespace std::chrono_literals;
 
 class VescSpeedAverageNode : public rclcpp::Node
 {
 public:
   VescSpeedAverageNode()
-  : Node("vesc_speed_average_node"), sum_(0.0), latest_average_(0.0), has_data_(false)
+  : Node("vesc_speed_average_node"),
+    sum_(0.0),
+    latest_average_(0.0),
+    has_data_(false),
+    has_latest_msg_(false)
   {
-    input_topic_ = this->declare_parameter<std::string>("input_topic", "/sensors/core.state.speed");
-    output_topic_ = this->declare_parameter<std::string>("output_topic", "/vesc_avg");
-    // window = the last N samples used to compute average (here N=10)
+    input_topic_ = this->declare_parameter<std::string>("input_topic", "/sensors/core");
+    output_topic_ = this->declare_parameter<std::string>("output_topic", "/vesc_average");
     window_size_ = this->declare_parameter<int>("window_size", 10);
     publish_rate_hz_ = this->declare_parameter<double>("publish_rate_hz", 50.0);
     qos_depth_ = this->declare_parameter<int>("qos_depth", 50);
@@ -37,27 +38,29 @@ public:
 
     auto qos = rclcpp::QoS(rclcpp::KeepLast(static_cast<size_t>(qos_depth_)));
 
-    speed_sub_ = this->create_subscription<std_msgs::msg::Float64>(
-      input_topic_, qos, std::bind(&VescSpeedAverageNode::speedCallback, this, _1));
+    vesc_sub_ = this->create_subscription<vesc_msgs::msg::VescStateStamped>(
+      input_topic_, qos, std::bind(&VescSpeedAverageNode::vescCallback, this, _1));
 
-    avg_pub_ = this->create_publisher<std_msgs::msg::Float64>(output_topic_, qos);
+    avg_pub_ = this->create_publisher<vesc_msgs::msg::VescStateStamped>(output_topic_, qos);
 
     const auto period = std::chrono::duration<double>(1.0 / publish_rate_hz_);
     publish_timer_ = this->create_wall_timer(
       std::chrono::duration_cast<std::chrono::nanoseconds>(period),
-      std::bind(&VescSpeedAverageNode::publishAveragedSpeed, this));
+      std::bind(&VescSpeedAverageNode::publishAveragedState, this));
 
     RCLCPP_INFO(
       this->get_logger(),
-      "Filtering '%s' -> '%s' with window=%d at %.2f Hz",
+      "Filtering '%s' -> '%s' (state.speed), window=%d, publish_rate=%.2f Hz",
       input_topic_.c_str(), output_topic_.c_str(), window_size_, publish_rate_hz_);
   }
 
 private:
-  void speedCallback(const std_msgs::msg::Float64::SharedPtr msg)
+  void vescCallback(const vesc_msgs::msg::VescStateStamped::SharedPtr msg)
   {
-    const double speed = msg->data;
+    latest_msg_ = *msg;
+    has_latest_msg_ = true;
 
+    const double speed = msg->state.speed;
     speed_window_.push_back(speed);
     sum_ += speed;
 
@@ -70,14 +73,15 @@ private:
     has_data_ = true;
   }
 
-  void publishAveragedSpeed()
+  void publishAveragedState()
   {
-    if (!has_data_) {
+    if (!has_data_ || !has_latest_msg_) {
       return;
     }
 
-    std_msgs::msg::Float64 out;
-    out.data = latest_average_;
+    auto out = latest_msg_;
+    out.header.stamp = this->now();
+    out.state.speed = latest_average_;
     avg_pub_->publish(out);
   }
 
@@ -91,9 +95,12 @@ private:
   double sum_;
   double latest_average_;
   bool has_data_;
+  bool has_latest_msg_;
 
-  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr speed_sub_;
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr avg_pub_;
+  vesc_msgs::msg::VescStateStamped latest_msg_;
+
+  rclcpp::Subscription<vesc_msgs::msg::VescStateStamped>::SharedPtr vesc_sub_;
+  rclcpp::Publisher<vesc_msgs::msg::VescStateStamped>::SharedPtr avg_pub_;
   rclcpp::TimerBase::SharedPtr publish_timer_;
 };
 

@@ -11,8 +11,8 @@ def generate_launch_description():
     publish_rate_hz = LaunchConfiguration('publish_rate_hz')
 
     return LaunchDescription([
-        DeclareLaunchArgument('input_topic', default_value='/sensors/core.state.speed'),
-        DeclareLaunchArgument('output_topic', default_value='/vesc_avg'),
+        DeclareLaunchArgument('input_topic', default_value='/sensors/core'),
+        DeclareLaunchArgument('output_topic', default_value='/vesc_average'),
         DeclareLaunchArgument('window_size', default_value='10'),
         DeclareLaunchArgument('publish_rate_hz', default_value='50.0'),
         Node(

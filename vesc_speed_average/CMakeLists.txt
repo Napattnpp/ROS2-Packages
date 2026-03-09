@@ -7,10 +7,10 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
+find_package(vesc_msgs REQUIRED)
 
 add_executable(vesc_speed_average_node src/vesc_speed_average_node.cpp)
-ament_target_dependencies(vesc_speed_average_node rclcpp std_msgs)
+ament_target_dependencies(vesc_speed_average_node rclcpp vesc_msgs)
 
 install(TARGETS
   vesc_speed_average_node
